@@ -1,0 +1,14 @@
+node_modules/
+.DS_Store
+*.log
+.vscode/
+.idea/
+dist/
+build/
+.env
+.env.local
+__pycache__/
+*.pyc
+.pytest_cache/
+preview.png
+preview_*.png
