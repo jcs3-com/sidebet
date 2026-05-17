@@ -10,38 +10,43 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,700&family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
 
-<!-- Libraries: React, ReactDOM, Recharts. Pinned versions for stability.
-     Primary CDN: jsdelivr (high availability). Fallback chain handled inline. -->
-<script src="https://cdn.jsdelivr.net/npm/react@18.3.1/umd/react.production.min.js" crossorigin></script>
-<script src="https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.production.min.js" crossorigin></script>
-<script src="https://cdn.jsdelivr.net/npm/recharts@2.12.7/umd/Recharts.min.js" crossorigin></script>
+<!-- Libraries: React, ReactDOM, react-is (peer dep), Recharts.
+     Using unpkg (official Recharts recommendation) with jsdelivr fallback.
+     react-is is required by Recharts 2.x — its absence causes
+     "Cannot read properties of undefined (reading 'ForwardRef')". -->
+<script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-is@18.3.1/umd/react-is.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/prop-types@15.8.1/prop-types.min.js" crossorigin></script>
+<script src="https://unpkg.com/recharts@2.12.7/umd/Recharts.js" crossorigin></script>
 
-<!-- Fallback to unpkg if jsdelivr fails -->
+<!-- Fallback to jsdelivr if any primary failed -->
 <script>
   (function() {
-    if (typeof React === 'undefined') {
-      document.write('<script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"><\/script>');
+    function loadIfMissing(globalName, fallbackSrc) {
+      if (typeof window[globalName] === 'undefined') {
+        document.write('<script src="' + fallbackSrc + '"><\/script>');
+      }
     }
-    if (typeof ReactDOM === 'undefined') {
-      document.write('<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"><\/script>');
-    }
-    if (typeof Recharts === 'undefined') {
-      document.write('<script src="https://unpkg.com/recharts@2.12.7/umd/Recharts.min.js"><\/script>');
-    }
+    loadIfMissing('React',     'https://cdn.jsdelivr.net/npm/react@18.3.1/umd/react.production.min.js');
+    loadIfMissing('ReactDOM',  'https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.production.min.js');
+    loadIfMissing('ReactIs',   'https://cdn.jsdelivr.net/npm/react-is@18.3.1/umd/react-is.production.min.js');
+    loadIfMissing('PropTypes', 'https://cdn.jsdelivr.net/npm/prop-types@15.8.1/prop-types.min.js');
+    loadIfMissing('Recharts',  'https://cdn.jsdelivr.net/npm/recharts@2.12.7/umd/Recharts.js');
   })();
 </script>
 
-<!-- Visible error reporter so any load failure is obvious instead of silent -->
+<!-- Visible error reporter: shows a banner with the actual error if anything fails -->
 <script>
   window.addEventListener('error', function(e) {
     var el = document.getElementById('error-banner');
     if (!el) {
       el = document.createElement('div');
       el.id = 'error-banner';
-      el.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#7c1d1d;color:#fff;font-family:monospace;font-size:12px;padding:10px 16px;z-index:99999;border-bottom:2px solid #ffb547';
+      el.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#7c1d1d;color:#fff;font-family:monospace;font-size:12px;padding:10px 16px;z-index:99999;border-bottom:2px solid #ffb547;white-space:pre-wrap;';
       (document.body || document.documentElement).appendChild(el);
     }
-    el.textContent = '⚠ load error: ' + (e.message || e.filename || 'unknown') + '  —  open DevTools console for details';
+    el.textContent = '⚠ ' + (e.message || e.filename || 'load error') + '  —  open DevTools (F12) console for details';
   }, true);
 </script>
 
