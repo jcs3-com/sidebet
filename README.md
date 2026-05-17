@@ -4,7 +4,7 @@ A visual calculator that treats sports bets as binary options. NBA moneylines
 calibrated as Brownian motion with drift; closed-form Greeks; live in-browser
 Monte Carlo. One self-contained HTML file. No build step.
 
-**[live demo →](https://YOURUSERNAME.github.io/sidebet/)**
+**[live demo →](https://jcs3-com.github.io/sidebet/)**
 
 ![preview](preview.png)
 
