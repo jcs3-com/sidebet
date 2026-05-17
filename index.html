@@ -1,0 +1,1855 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>SIDEBET — Sports Bets as Options</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,700&family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+
+<!-- Chart.js: single self-contained UMD bundle, no peer dependencies -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+
+<!-- Fallback to cdnjs if jsdelivr fails -->
+<script>
+  if (typeof Chart === 'undefined') {
+    document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"><\/script>');
+  }
+</script>
+
+<style>
+  :root {
+    --bg:        #0a0a0a;
+    --bg-soft:   #111111;
+    --bg-rail:   #161616;
+    --bg-card:   #0f0f0f;
+    --line:      #1f1f1f;
+    --line-soft: #181818;
+    --line-hot:  #2a2a2a;
+    --ink:       #ededed;
+    --ink-soft:  #9a9a9a;
+    --ink-dim:   #5e5e5e;
+    --ink-faint: #3a3a3a;
+    --amber:     #ffb547;
+    --amber-dim: #8a5d24;
+    --pos:       #4ade80;
+    --neg:       #f87171;
+    --info:      #60a5fa;
+    --serif:     "Fraunces", "Times New Roman", serif;
+    --sans:      "IBM Plex Sans", system-ui, sans-serif;
+    --mono:      "IBM Plex Mono", "JetBrains Mono", ui-monospace, monospace;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-weight: 300;
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  body::before {
+    content: "";
+    position: fixed; inset: 0;
+    pointer-events: none;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9'/><feColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.05 0'/></filter><rect width='200' height='200' filter='url(%23n)'/></svg>");
+    opacity: 0.5;
+    z-index: 9999;
+    mix-blend-mode: overlay;
+  }
+
+  ::selection { background: var(--amber); color: #000; }
+
+  .mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+  .num  { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+
+  /* Masthead */
+  header.masthead {
+    border-bottom: 1px solid var(--line);
+    padding: 18px 32px;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    background: var(--bg);
+    position: sticky; top: 0; z-index: 100;
+  }
+  .brand {
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: 26px;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+  }
+  .brand .dot { color: var(--amber); }
+  .brand sup {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 400;
+    color: var(--ink-dim);
+    margin-left: 8px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    vertical-align: super;
+  }
+  .brand .sub {
+    font-size: 18px;
+    color: var(--ink-soft);
+    font-style: italic;
+    margin-left: 6px;
+  }
+  .masthead-meta {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink-dim);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    display: flex;
+    gap: 24px;
+    align-items: center;
+  }
+  .pulse {
+    display: inline-block;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--amber);
+    box-shadow: 0 0 8px var(--amber);
+    margin-right: 6px;
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50%      { opacity: 0.3; }
+  }
+
+  main {
+    max-width: 1380px;
+    margin: 0 auto;
+    padding: 0 32px 80px;
+  }
+
+  /* Hero */
+  .hero {
+    padding: 56px 0 40px;
+    border-bottom: 1px solid var(--line);
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    gap: 64px;
+    align-items: end;
+  }
+  .hero h1 {
+    font-family: var(--serif);
+    font-weight: 300;
+    font-size: clamp(38px, 5vw, 64px);
+    line-height: 1.02;
+    letter-spacing: -0.025em;
+    margin: 0;
+  }
+  .hero h1 em {
+    font-style: italic;
+    color: var(--amber);
+  }
+  .hero p {
+    font-size: 15px;
+    line-height: 1.7;
+    color: var(--ink-soft);
+    max-width: 42ch;
+    margin: 0;
+  }
+  .hero p strong { color: var(--ink); font-weight: 400; }
+  .ticker {
+    margin-top: 24px;
+    padding: 10px 0;
+    border-top: 1px dashed var(--line-hot);
+    border-bottom: 1px dashed var(--line-hot);
+    overflow: hidden;
+    white-space: nowrap;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink-dim);
+    letter-spacing: 0.05em;
+  }
+  .ticker span { margin-right: 48px; }
+  .ticker .tag { color: var(--amber); margin-right: 8px; }
+
+  /* Calculator rig */
+  .rig {
+    display: grid;
+    grid-template-columns: 380px 1fr;
+    gap: 1px;
+    background: var(--line);
+    margin-top: 48px;
+    border: 1px solid var(--line);
+  }
+  .rig > section {
+    background: var(--bg-card);
+    padding: 28px 28px;
+  }
+
+  .panel-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--ink-dim);
+    margin-bottom: 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--line-hot);
+    padding-bottom: 10px;
+  }
+  .panel-label .ix { color: var(--amber); }
+
+  .field {
+    display: block;
+    margin: 18px 0;
+  }
+  .field-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 6px;
+  }
+  .field-name {
+    font-family: var(--mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--ink-soft);
+  }
+  .field-readout {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--ink);
+    font-weight: 500;
+  }
+
+  input[type=number] {
+    width: 100%;
+    background: var(--bg-soft);
+    border: 1px solid var(--line-hot);
+    color: var(--ink);
+    padding: 10px 12px;
+    font-family: var(--mono);
+    font-size: 14px;
+    border-radius: 0;
+    outline: none;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  input[type=number]:focus {
+    border-color: var(--amber);
+    background: #1a1408;
+  }
+
+  input[type=range] {
+    width: 100%;
+    appearance: none;
+    background: transparent;
+    margin: 6px 0 2px;
+  }
+  input[type=range]::-webkit-slider-runnable-track {
+    height: 2px;
+    background: var(--line-hot);
+  }
+  input[type=range]::-webkit-slider-thumb {
+    appearance: none;
+    width: 14px; height: 14px;
+    background: var(--amber);
+    margin-top: -6px;
+    border-radius: 0;
+    transform: rotate(45deg);
+    cursor: grab;
+  }
+  input[type=range]::-moz-range-track {
+    height: 2px;
+    background: var(--line-hot);
+  }
+  input[type=range]::-moz-range-thumb {
+    width: 14px; height: 14px;
+    background: var(--amber);
+    border: 0;
+    border-radius: 0;
+    transform: rotate(45deg);
+    cursor: grab;
+  }
+
+  .side-toggle {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    border: 1px solid var(--line-hot);
+    margin-bottom: 4px;
+  }
+  .side-toggle button {
+    background: var(--bg-soft);
+    color: var(--ink-dim);
+    border: 0;
+    padding: 10px;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .side-toggle button.active {
+    background: var(--amber);
+    color: #000;
+    font-weight: 600;
+  }
+  .side-toggle button:not(.active):hover {
+    color: var(--ink);
+    background: var(--bg-rail);
+  }
+
+  /* Greek tiles */
+  .tiles {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+    margin-bottom: 28px;
+  }
+  .tiles-3 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+    margin-bottom: 28px;
+  }
+  .tiles-5 {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+    margin-bottom: 24px;
+  }
+  .tile {
+    background: var(--bg-card);
+    padding: 18px 16px;
+  }
+  .tile-name {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-dim);
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .tile-name .greek {
+    font-family: var(--serif);
+    font-size: 14px;
+    color: var(--amber);
+    font-style: italic;
+  }
+  .tile-value {
+    font-family: var(--mono);
+    font-size: 22px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    color: var(--ink);
+    line-height: 1;
+  }
+  .tile-value.pos { color: var(--pos); }
+  .tile-value.neg { color: var(--neg); }
+  .tile-value.amber { color: var(--amber); }
+  .tile-sub {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--ink-dim);
+    margin-top: 6px;
+    letter-spacing: 0.04em;
+  }
+
+  .chart-wrap {
+    background: var(--bg-card);
+    border: 1px solid var(--line);
+    padding: 24px;
+    margin-top: 1px;
+  }
+  .chart-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--line-hot);
+  }
+  .chart-title {
+    font-family: var(--serif);
+    font-size: 20px;
+    font-weight: 400;
+    letter-spacing: -0.01em;
+  }
+  .chart-title em { font-style: italic; }
+  .chart-meta {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink-dim);
+    letter-spacing: 0.06em;
+  }
+  .chart-container {
+    position: relative;
+    width: 100%;
+    height: 320px;
+  }
+  .chart-container.small { height: 260px; }
+  .chart-container.tiny  { height: 220px; }
+  .chart-legend {
+    margin-top: 12px;
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink-dim);
+  }
+
+  .datarow {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    padding: 7px 0;
+    border-bottom: 1px dotted var(--line-hot);
+    font-family: var(--mono);
+    font-size: 12px;
+  }
+  .datarow:last-child { border-bottom: none; }
+  .datarow .k { color: var(--ink-soft); letter-spacing: 0.05em; }
+  .datarow .v { color: var(--ink); font-weight: 500; }
+  .datarow .v.pos { color: var(--pos); }
+  .datarow .v.neg { color: var(--neg); }
+  .datarow .v.amber { color: var(--amber); }
+
+  .betblock {
+    background: var(--bg-soft);
+    border-left: 2px solid var(--amber);
+    padding: 14px 16px;
+    margin: 16px 0;
+  }
+  .betblock-title {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 6px;
+  }
+  .betblock-body {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--ink);
+    line-height: 1.6;
+  }
+
+  /* Module 2 styling */
+  .module2 {
+    margin-top: 64px;
+    border-top: 1px solid var(--line-hot);
+    padding-top: 48px;
+  }
+  .module2-head {
+    display: grid;
+    grid-template-columns: 1fr 1.2fr;
+    gap: 64px;
+    margin-bottom: 40px;
+  }
+  .module2-eyebrow {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    color: var(--amber);
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+  .module2-title {
+    font-family: var(--serif);
+    font-weight: 300;
+    font-size: clamp(32px, 4vw, 48px);
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    margin: 0;
+  }
+  .module2-title em { color: var(--amber); font-style: italic; }
+  .module2-lede {
+    font-size: 14px;
+    line-height: 1.7;
+    color: var(--ink-soft);
+    margin: 0;
+    max-width: 52ch;
+    padding-top: 32px;
+  }
+  .module2-lede em { color: var(--ink); font-style: italic; }
+  .module2-lede strong { color: var(--ink); font-weight: 400; }
+  .module2-lede .num { color: var(--amber); }
+
+  .position-bar {
+    background: var(--bg-card);
+    border: 1px solid var(--line);
+    padding: 24px 28px;
+    margin-bottom: 1px;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 32px;
+    align-items: center;
+  }
+  .position-bar .label {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--ink-dim);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .position-bar .you {
+    font-family: var(--serif);
+    font-size: 22px;
+    font-style: italic;
+    color: var(--ink);
+  }
+  .position-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 24px;
+    font-family: var(--mono);
+  }
+  .position-stats .stat-name {
+    font-size: 10px;
+    color: var(--ink-dim);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .position-stats .stat-val {
+    font-size: 20px;
+    margin-top: 4px;
+  }
+  .position-stats .stat-val.amber { color: var(--amber); }
+  .zone-marker {
+    border-left: 2px solid;
+    padding-left: 16px;
+    text-align: right;
+  }
+  .zone-marker .zone {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+  }
+
+  .mc-panel {
+    margin-top: 48px;
+    padding: 32px;
+    background: var(--bg-card);
+    border: 1px solid var(--line);
+  }
+  .mc-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 24px;
+  }
+  .mc-subtitle {
+    font-family: var(--serif);
+    font-size: 18px;
+    font-style: italic;
+    color: var(--ink-soft);
+    margin-top: 6px;
+  }
+  .mc-button {
+    background: var(--amber);
+    color: #000;
+    border: 0;
+    padding: 14px 28px;
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .mc-button:hover { background: #ffc066; }
+  .mc-button:disabled {
+    background: var(--bg-rail);
+    color: var(--ink-dim);
+    cursor: wait;
+  }
+  .mc-placeholder {
+    padding: 32px;
+    text-align: center;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--ink-dim);
+    border: 1px dashed var(--line-hot);
+    letter-spacing: 0.04em;
+  }
+
+  /* Notes / colophon */
+  .notes {
+    margin-top: 48px;
+    padding-top: 24px;
+    border-top: 1px solid var(--line);
+    display: grid;
+    grid-template-columns: 200px 1fr 1fr;
+    gap: 32px;
+  }
+  .notes h3 {
+    font-family: var(--serif);
+    font-size: 14px;
+    font-weight: 500;
+    font-style: italic;
+    color: var(--ink-soft);
+    margin: 0;
+  }
+  .notes p {
+    margin: 0;
+    font-size: 12px;
+    color: var(--ink-soft);
+    line-height: 1.6;
+  }
+  .notes p strong { color: var(--ink); font-weight: 400; }
+  .notes p em { font-style: italic; color: var(--ink); }
+  .notes .num-anchor {
+    font-family: var(--serif);
+    font-size: 13px;
+    font-style: italic;
+    color: var(--amber);
+    margin-right: 6px;
+  }
+
+  footer.colophon {
+    margin-top: 64px;
+    padding: 24px 32px;
+    border-top: 1px solid var(--line);
+    display: flex;
+    justify-content: space-between;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--ink-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  /* Loading state */
+  #boot-error {
+    display: none;
+    position: fixed; top: 0; left: 0; right: 0;
+    background: #7c1d1d; color: #fff;
+    font-family: var(--mono); font-size: 12px;
+    padding: 10px 16px;
+    z-index: 99999;
+    border-bottom: 2px solid var(--amber);
+  }
+
+  @media (max-width: 1100px) {
+    .rig { grid-template-columns: 1fr; }
+    .hero { grid-template-columns: 1fr; gap: 24px; }
+    .tiles, .tiles-5 { grid-template-columns: repeat(2, 1fr); }
+    .tiles-3 { grid-template-columns: 1fr; }
+    .notes { grid-template-columns: 1fr; }
+    .module2-head { grid-template-columns: 1fr; gap: 24px; }
+    .position-bar { grid-template-columns: 1fr; gap: 24px; text-align: left; }
+    .position-stats { grid-template-columns: repeat(2, 1fr); }
+    .zone-marker { border-left: 0; border-top: 2px solid; padding-left: 0; padding-top: 16px; text-align: left; }
+  }
+</style>
+</head>
+<body>
+
+<div id="boot-error"></div>
+
+<header class="masthead">
+  <div class="brand">
+    sidebet<span class="dot">.</span><span class="sub">a sports-bets-as-options primer</span>
+    <sup>vol. 01</sup>
+  </div>
+  <div class="masthead-meta">
+    <span><span class="pulse"></span>nba model · σ=13.5</span>
+    <span>module 01 / greeks</span>
+    <span>module 02 / convexity profile</span>
+  </div>
+</header>
+
+<main>
+  <section class="hero">
+    <div>
+      <h1>
+        Every moneyline is a <em>binary option</em>.
+        <br/>This is the trade ticket.
+      </h1>
+      <div class="ticker">
+        <span><span class="tag">DELTA</span> dP/dD — sensitivity to score</span>
+        <span><span class="tag">GAMMA</span> d²P/dD² — convexity</span>
+        <span><span class="tag">THETA</span> dP/dt — clock decay</span>
+        <span><span class="tag">VEGA</span> dP/dσ — vol exposure</span>
+      </div>
+    </div>
+    <p>
+      A moneyline bet pays $1 or $0 at terminal time. That's a <strong>binary
+      option on the score differential</strong>, with the pregame line setting
+      the drift and game-level scoring variance setting the volatility. Under
+      a Brownian motion model — Stern (1994), well-replicated for NBA — the
+      Greeks have <strong>closed-form expressions</strong>. Inputs on the left.
+      Greeks and payoff curves on the right.
+    </p>
+  </section>
+
+  <!-- ===================== MODULE 01 ===================== -->
+  <div class="rig">
+    <!-- INPUTS -->
+    <section>
+      <div class="panel-label">
+        <span>Trade ticket</span><span class="ix">01</span>
+      </div>
+
+      <div class="field">
+        <div class="field-label">
+          <span class="field-name">Bet side</span>
+          <span class="field-readout" id="side-readout">underdog</span>
+        </div>
+        <div class="side-toggle" id="side-toggle">
+          <button data-side="fav">Favorite</button>
+          <button data-side="dog" class="active">Underdog</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <div class="field-label">
+          <span class="field-name">Favorite odds (American)</span>
+          <span class="field-readout" id="fav-odds-readout">-190</span>
+        </div>
+        <input type="number" id="fav-odds" value="-190" step="5" />
+      </div>
+
+      <div class="field">
+        <div class="field-label">
+          <span class="field-name">Underdog odds (American)</span>
+          <span class="field-readout" id="dog-odds-readout">+160</span>
+        </div>
+        <input type="number" id="dog-odds" value="160" step="5" />
+      </div>
+
+      <div class="field">
+        <div class="field-label">
+          <span class="field-name">Stake (USD)</span>
+          <span class="field-readout" id="stake-readout">$100</span>
+        </div>
+        <input type="number" id="stake" value="100" step="10" />
+      </div>
+
+      <div class="panel-label" style="margin-top:28px;">
+        <span>Game state</span><span class="ix">02</span>
+      </div>
+
+      <div class="field">
+        <div class="field-label">
+          <span class="field-name">Time elapsed</span>
+          <span class="field-readout" id="time-readout">Q1 · 0.0 / 48 min</span>
+        </div>
+        <input type="range" id="t-elapsed" min="0" max="0.99" step="0.01" value="0" />
+      </div>
+
+      <div class="field">
+        <div class="field-label">
+          <span class="field-name">Score differential (fav − dog)</span>
+          <span class="field-readout" id="d-readout">tied</span>
+        </div>
+        <input type="range" id="d-input" min="-30" max="30" step="1" value="0" />
+      </div>
+
+      <div class="field">
+        <div class="field-label">
+          <span class="field-name">Game volatility σ (pts)</span>
+          <span class="field-readout" id="sigma-readout">13.5</span>
+        </div>
+        <input type="range" id="sigma-input" min="8" max="20" step="0.5" value="13.5" />
+      </div>
+
+      <div class="betblock">
+        <div class="betblock-title">Devigged · proportional</div>
+        <div class="betblock-body" id="devig-body">
+          fav fair: 63.0%<br/>
+          dog fair: 37.0%<br/>
+          vig: <span style="color:var(--ink-soft)">3.98%</span><br/>
+          implied drift μ: 4.48 pts
+        </div>
+      </div>
+    </section>
+
+    <!-- OUTPUTS -->
+    <section>
+      <div class="panel-label">
+        <span>Position readout · <span id="readout-side">underdog</span></span>
+        <span class="ix">03</span>
+      </div>
+
+      <div class="tiles">
+        <div class="tile">
+          <div class="tile-name"><span class="greek">P</span>WIN PROB</div>
+          <div class="tile-value" id="g-wp">37.0%</div>
+          <div class="tile-sub" id="g-wp-sub">entry: 37.0%</div>
+        </div>
+        <div class="tile">
+          <div class="tile-name"><span class="greek">Δ</span>DELTA</div>
+          <div class="tile-value" id="g-delta">-0.0280</div>
+          <div class="tile-sub">per 1 pt of D</div>
+        </div>
+        <div class="tile">
+          <div class="tile-name"><span class="greek">Γ</span>GAMMA</div>
+          <div class="tile-value" id="g-gamma">+0.00069</div>
+          <div class="tile-sub">d²WP / dD²</div>
+        </div>
+        <div class="tile">
+          <div class="tile-name"><span class="greek">Θ</span>THETA</div>
+          <div class="tile-value" id="g-theta">+0.0627</div>
+          <div class="tile-sub">per unit t</div>
+        </div>
+        <div class="tile">
+          <div class="tile-name"><span class="greek">𝒱</span>VEGA</div>
+          <div class="tile-value" id="g-vega">+0.0093</div>
+          <div class="tile-sub">per +1.0 σ</div>
+        </div>
+      </div>
+
+      <div class="tiles-3">
+        <div class="tile">
+          <div class="tile-name">FAIR VALUE NOW</div>
+          <div class="tile-value" id="bv-fair">$-3.83</div>
+          <div class="tile-sub">stake-adjusted EV at current state</div>
+        </div>
+        <div class="tile">
+          <div class="tile-name">PAYOUT IF WIN</div>
+          <div class="tile-value" id="bv-payout">$160.00</div>
+          <div class="tile-sub">profit on $<span id="bv-stake-disp">100</span> stake</div>
+        </div>
+        <div class="tile">
+          <div class="tile-name">PREGAME EV</div>
+          <div class="tile-value" id="bv-entry">$-3.83</div>
+          <div class="tile-sub">at devigged fair</div>
+        </div>
+      </div>
+
+      <div class="chart-wrap">
+        <div class="chart-head">
+          <span class="chart-title"><em>Payoff surface</em> · bet value vs. score differential</span>
+          <span class="chart-meta">slices: pregame · half · 4Q early · final min · now</span>
+        </div>
+        <div class="chart-container"><canvas id="chart-payoff"></canvas></div>
+      </div>
+
+      <div class="chart-wrap" style="margin-top:1px;">
+        <div class="chart-head">
+          <span class="chart-title"><em>Theta sheet</em> · WP through game time, by score differential</span>
+          <span class="chart-meta">curves: D = −8, −3, 0, +3, +8</span>
+        </div>
+        <div class="chart-container small"><canvas id="chart-theta"></canvas></div>
+      </div>
+
+      <div style="margin-top:28px; display:grid; grid-template-columns:1fr 1fr; gap:32px;">
+        <div>
+          <div class="panel-label" style="border-bottom: 1px solid var(--line-hot);">
+            <span>Reading the Greeks</span><span class="ix">04</span>
+          </div>
+          <div class="datarow"><span class="k">DELTA</span><span class="v amber" id="r-delta">-0.0280</span></div>
+          <div style="padding:6px 0; font-size:12px; color:var(--ink-soft); line-height:1.6;" id="r-delta-text">…</div>
+          <div class="datarow"><span class="k">GAMMA</span><span class="v" id="r-gamma">0.00069</span></div>
+          <div style="padding:6px 0; font-size:12px; color:var(--ink-soft); line-height:1.6;" id="r-gamma-text">…</div>
+          <div class="datarow"><span class="k">THETA</span><span class="v" id="r-theta">0.0627</span></div>
+          <div style="padding:6px 0; font-size:12px; color:var(--ink-soft); line-height:1.6;" id="r-theta-text">…</div>
+          <div class="datarow"><span class="k">VEGA</span><span class="v" id="r-vega">0.0093</span></div>
+          <div style="padding:6px 0; font-size:12px; color:var(--ink-soft); line-height:1.6;" id="r-vega-text">…</div>
+        </div>
+        <div>
+          <div class="panel-label" style="border-bottom: 1px solid var(--line-hot);">
+            <span>Position math</span><span class="ix">05</span>
+          </div>
+          <div class="datarow"><span class="k">side</span><span class="v amber" id="m-side">UNDERDOG</span></div>
+          <div class="datarow"><span class="k">odds</span><span class="v" id="m-odds">+160</span></div>
+          <div class="datarow"><span class="k">stake</span><span class="v" id="m-stake">$100.00</span></div>
+          <div class="datarow"><span class="k">payout if win</span><span class="v" id="m-payout">$160.00</span></div>
+          <div class="datarow"><span class="k">implied prob (raw)</span><span class="v" id="m-rawp">38.46%</span></div>
+          <div class="datarow"><span class="k">implied prob (devig)</span><span class="v" id="m-devigp">36.99%</span></div>
+          <div class="datarow"><span class="k">model live WP</span><span class="v amber" id="m-wp">36.99%</span></div>
+          <div class="datarow"><span class="k">WP delta vs. entry</span><span class="v" id="m-wpdelta">+0.00 pp</span></div>
+          <div class="datarow"><span class="k">fair value now</span><span class="v" id="m-fair">$-3.83</span></div>
+          <div class="datarow"><span class="k">pregame EV (post-vig)</span><span class="v" id="m-preev">$-3.83</span></div>
+          <div class="datarow"><span class="k">drift μ (model)</span><span class="v" id="m-mu">4.484 pts</span></div>
+          <div class="datarow"><span class="k">sigma σ</span><span class="v" id="m-sigma">13.5 pts</span></div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ===================== MODULE 02 ===================== -->
+  <div class="module2">
+    <div class="module2-head">
+      <div>
+        <div class="module2-eyebrow">Module 02 · The Convexity Profile</div>
+        <h2 class="module2-title">
+          Cheap dogs <em>are</em> options.<br/>
+          How much option, exactly?
+        </h2>
+      </div>
+      <p class="module2-lede">
+        Pregame, an underdog at <span class="num">p₀</span> looks like a cheap
+        lottery ticket. The model says: across 40,000 simulated game paths per
+        price, the <em>expected peak in-game probability</em> divided by entry
+        follows a tight log-linear law —
+        <span class="num">E[max p<sub>dog</sub>] / p₀ ≈ 1.05 − 0.91·ln(p₀)</span>
+        with R² ≈ 0.9998. The 2× hit rate is essentially constant. Cheap dogs
+        do not double up <em>more often</em>; they double up by larger <em>amounts</em>.
+      </p>
+    </div>
+
+    <div class="position-bar">
+      <div>
+        <div class="label">Your position</div>
+        <div class="you" id="m2-position">underdog at p₀ = 37.0%</div>
+      </div>
+      <div class="position-stats">
+        <div>
+          <div class="stat-name">Expected peak</div>
+          <div class="stat-val" id="m2-peak">72.1%</div>
+        </div>
+        <div>
+          <div class="stat-name">Peak multiple</div>
+          <div class="stat-val amber" id="m2-mult">1.95×</div>
+        </div>
+        <div>
+          <div class="stat-name">P(reach 2×)</div>
+          <div class="stat-val" id="m2-2x">48%</div>
+        </div>
+        <div>
+          <div class="stat-name">γ / δ ratio</div>
+          <div class="stat-val" id="m2-gd">0.0246</div>
+        </div>
+      </div>
+      <div class="zone-marker" id="m2-zone-wrap" style="border-color:var(--neg);">
+        <div class="label">Zone</div>
+        <div class="zone" id="m2-zone" style="color:var(--neg);">DIRECTIONAL</div>
+      </div>
+    </div>
+
+    <div class="chart-wrap">
+      <div class="chart-head">
+        <span class="chart-title"><em>Peak multiple</em> · E[max p<sub>dog</sub>] / p₀ across pregame prices</span>
+        <span class="chart-meta">40k MC paths per point · NBA σ=13.5</span>
+      </div>
+      <div class="chart-container"><canvas id="chart-peak"></canvas></div>
+      <div class="chart-meta" style="margin-top:12px;">
+        Fit: <span style="color:var(--amber)">peakMult ≈ 1.05 − 0.91·ln(p₀)</span>, R² = 0.9998.
+      </div>
+    </div>
+
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:1px; margin-top:1px;">
+      <div class="chart-wrap" style="margin-top:0;">
+        <div class="chart-head">
+          <span class="chart-title"><em>2× hit rate</em> · the flat curve</span>
+          <span class="chart-meta">P(max p<sub>dog</sub> ≥ 2·p₀)</span>
+        </div>
+        <div class="chart-container tiny"><canvas id="chart-2x"></canvas></div>
+        <div class="chart-meta" style="margin-top:8px; line-height:1.5;">
+          Hovers 46–50% across every entry price.
+          <span style="color:var(--ink)">The probability of doubling is constant.</span>
+          What varies is the absolute size of the move.
+        </div>
+      </div>
+      <div class="chart-wrap" style="margin-top:0;">
+        <div class="chart-head">
+          <span class="chart-title"><em>γ / δ ratio</em> · convexity-to-direction</span>
+          <span class="chart-meta">closed-form at entry · log scale</span>
+        </div>
+        <div class="chart-container tiny"><canvas id="chart-gd"></canvas></div>
+        <div class="chart-meta" style="margin-top:8px; line-height:1.5;">
+          Falls roughly 75× from p₀=3% to p₀=49%.
+          <span style="color:var(--ink)">This is the real story</span> —
+          convexity per unit directional exposure collapses smoothly with price.
+        </div>
+      </div>
+    </div>
+
+    <div class="mc-panel">
+      <div class="mc-head">
+        <div>
+          <div class="panel-label" style="border-bottom:none; padding-bottom:0; margin-bottom:4px;">
+            <span>Live simulation · your bet specifically</span><span class="ix">06</span>
+          </div>
+          <div class="mc-subtitle">Run 5,000 fresh Monte Carlo paths for p₀ = <span id="mc-p0">37.0%</span></div>
+        </div>
+        <button class="mc-button" id="mc-run">Run simulation</button>
+      </div>
+      <div id="mc-output">
+        <div class="mc-placeholder">
+          Click to run a fresh 5,000-path simulation. Takes about 1–2 seconds.
+          Histogram and distribution stats appear here.
+        </div>
+      </div>
+    </div>
+
+    <div class="notes" style="margin-top:48px;">
+      <h3>The takeaway,<br/>stated plainly</h3>
+      <p>
+        The folk wisdom that "below 25¢ is the line" for live-betting underdog
+        plays is <strong>partially right and partially wrong</strong>. Right:
+        cheap underdogs are structurally more convex. Wrong: there's no
+        threshold. The relationship is smooth. The biggest marginal gains in
+        convexity come from going from 10% to 5%, not from crossing some
+        arbitrary 25% line.
+      </p>
+      <p>
+        The non-obvious finding: the probability of any 2× repricing is
+        <strong>approximately constant</strong> across pregame underdog
+        prices. What changes is not how often you get a favorable move; it's
+        how big that move is relative to what you paid. This is the precise
+        content of "cheap optionality" — same hit rate, larger relative
+        payoff.
+      </p>
+    </div>
+  </div>
+
+  <!-- ===================== NOTES ===================== -->
+  <section class="notes">
+    <h3>Notes &<br/>caveats</h3>
+    <p>
+      <span class="num-anchor">i.</span>
+      σ = 13.5 points-per-game is the consensus NBA score-differential
+      volatility from Stern (1994) and replicated in Polson &amp; Stern
+      (2015). Other sports require a different model — NFL has discrete
+      possessions that violate the Brownian assumption — so this v1 is
+      NBA-only. Don't generalize.
+    </p>
+    <p>
+      <span class="num-anchor">ii.</span>
+      The model assumes constant within-game volatility. Real basketball
+      has stochastic vol from foul rate, pace changes, and end-game
+      intentional fouling. Greeks should be read as <em>first-order</em>
+      approximations, not as exact prices a market maker would charge.
+    </p>
+  </section>
+
+  <section class="notes" style="margin-top:0;">
+    <h3>What this is<br/><em>not</em></h3>
+    <p>
+      <span class="num-anchor">iii.</span>
+      This is not a betting system, an edge-finder, or financial advice.
+      It is a visualization tool — a way of seeing the structural similarity
+      between sports markets and derivatives markets.
+    </p>
+    <p>
+      <span class="num-anchor">iv.</span>
+      The empirical claim of Module 02: expected peak in-game repricing of
+      an underdog follows a tight log-linear law — E[peak]/p₀ ≈ 1.05 −
+      0.91·ln(p₀), R² = 0.9998 from 40k Monte Carlo paths per price. Cheap
+      underdogs are structurally convex. Folk wisdom had the shape right
+      and the threshold wrong.
+    </p>
+  </section>
+</main>
+
+<footer class="colophon">
+  <span>sidebet / modules 01 + 02 · last revised 2026</span>
+  <span>built as a visual essay — not a sportsbook</span>
+  <span>source on github</span>
+</footer>
+
+<!-- ===================================================================
+     MATH MODEL (same as before, JS only — no React)
+     =================================================================== -->
+<script>
+"use strict";
+
+const SIGMA_NBA = 13.5;
+const SQRT_2 = Math.SQRT2;
+const INV_SQRT_2PI = 1 / Math.sqrt(2 * Math.PI);
+
+function phi(x) { return INV_SQRT_2PI * Math.exp(-0.5 * x * x); }
+
+function erf(x) {
+  const sign = x < 0 ? -1 : 1;
+  const ax = Math.abs(x);
+  const t = 1 / (1 + 0.3275911 * ax);
+  const y = 1 - ((((1.061405429 * t - 1.453152027) * t + 1.421413741) * t
+                  - 0.284496736) * t + 0.254829592) * t * Math.exp(-ax * ax);
+  return sign * y;
+}
+function Phi(x) { return 0.5 * (1 + erf(x / SQRT_2)); }
+
+function PhiInv(p) {
+  if (p <= 0) return -Infinity;
+  if (p >= 1) return  Infinity;
+  const a = [-3.969683028665376e1, 2.209460984245205e2, -2.759285104469687e2,
+              1.38357751867269e2, -3.066479806614716e1, 2.506628277459239];
+  const b = [-5.447609879822406e1, 1.615858368580409e2, -1.556989798598866e2,
+              6.680131188771972e1, -1.328068155288572e1];
+  const c = [-7.784894002430293e-3, -3.223964580411365e-1, -2.400758277161838,
+             -2.549732539343734, 4.374664141464968, 2.938163982698783];
+  const d = [7.784695709041462e-3, 3.224671290700398e-1, 2.445134137142996,
+             3.754408661907416];
+  const pl = 0.02425, ph = 1 - pl;
+  let q, r;
+  if (p < pl) {
+    q = Math.sqrt(-2 * Math.log(p));
+    return (((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5]) /
+           ((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1);
+  } else if (p <= ph) {
+    q = p - 0.5; r = q * q;
+    return ((((((a[0]*r+a[1])*r+a[2])*r+a[3])*r+a[4])*r+a[5]) * q) /
+           (((((b[0]*r+b[1])*r+b[2])*r+b[3])*r+b[4])*r+1);
+  } else {
+    q = Math.sqrt(-2 * Math.log(1 - p));
+    return -(((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5]) /
+            ((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1);
+  }
+}
+
+function americanToImplied(odds) {
+  if (odds === 0) return 0.5;
+  return odds > 0 ? 100 / (odds + 100) : -odds / (-odds + 100);
+}
+function devig(favOdds, dogOdds) {
+  const rf = americanToImplied(favOdds);
+  const rd = americanToImplied(dogOdds);
+  const tot = rf + rd;
+  return { fav: rf / tot, dog: rd / tot, vig: tot - 1 };
+}
+function calibrate(p0Fav, sigma) {
+  return { mu: sigma * PhiInv(p0Fav), sigma };
+}
+function zScore(D, t, params) {
+  if (t >= 1) return D > 0 ? Infinity : (D < 0 ? -Infinity : 0);
+  return (D + params.mu * (1 - t)) / (params.sigma * Math.sqrt(1 - t));
+}
+function wpFav(D, t, params) {
+  if (t >= 1) return D > 0 ? 1 : (D < 0 ? 0 : 0.5);
+  return Phi(zScore(D, t, params));
+}
+function greeks(D, t, params) {
+  if (t >= 1) return { delta:0, gamma:0, theta:0, vega:0 };
+  const rem = 1 - t;
+  const sqrtRem = Math.sqrt(rem);
+  const z = (D + params.mu * rem) / (params.sigma * sqrtRem);
+  const pz = phi(z);
+  const delta = pz / (params.sigma * sqrtRem);
+  const gamma = -z * pz / (params.sigma * params.sigma * rem);
+  const dz_dt = (D - params.mu * rem) / (2 * params.sigma * Math.pow(rem, 1.5));
+  const theta = pz * dz_dt;
+  const vega  = -pz * z / params.sigma;
+  return { delta, gamma, theta, vega };
+}
+
+// Monte Carlo
+function randn() {
+  let u = 0, v = 0;
+  while (u === 0) u = Math.random();
+  while (v === 0) v = Math.random();
+  return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+}
+function simOnePath(mu, sigma, steps) {
+  const dt = 1 / steps;
+  const sqrtDt = Math.sqrt(dt);
+  let D = 0;
+  let maxDog = 1 - Phi(mu / sigma);
+  let minDog = maxDog;
+  for (let i = 1; i <= steps; i++) {
+    D += mu * dt + sigma * sqrtDt * randn();
+    const t = i / steps;
+    let pDog;
+    if (i === steps) {
+      pDog = D < 0 ? 1 : (D > 0 ? 0 : 0.5);
+    } else {
+      const rem = 1 - t;
+      const z = (D + mu * rem) / (sigma * Math.sqrt(rem));
+      pDog = 1 - Phi(z);
+    }
+    if (pDog > maxDog) maxDog = pDog;
+    if (pDog < minDog) minDog = pDog;
+  }
+  return { maxDog, minDog, dogWon: D < 0 };
+}
+function runConvexityMC(p0Dog, nPaths, steps, sigma) {
+  const pFav = 1 - p0Dog;
+  const mu = sigma * PhiInv(pFav);
+  const maxes = new Float64Array(nPaths);
+  let dogWins = 0;
+  for (let i = 0; i < nPaths; i++) {
+    const r = simOnePath(mu, sigma, steps);
+    maxes[i] = r.maxDog;
+    if (r.dogWon) dogWins++;
+  }
+  const sorted = Array.from(maxes).sort((a,b)=>a-b);
+  const q = (p) => sorted[Math.floor(p * sorted.length)];
+  let sum = 0, doubleUp = 0;
+  for (let i = 0; i < nPaths; i++) {
+    sum += maxes[i];
+    if (maxes[i] >= 2 * p0Dog) doubleUp++;
+  }
+  const meanMax = sum / nPaths;
+  return {
+    p0: p0Dog, nPaths,
+    meanMax,
+    peakMult: meanMax / p0Dog,
+    p10: q(0.10), p50: q(0.50), p90: q(0.90),
+    doubleUp: doubleUp / nPaths,
+    dogWinRate: dogWins / nPaths,
+    maxes: sorted,
+  };
+}
+
+// Pre-baked convexity curve (40k MC paths per price point, offline)
+const CONVEXITY_CURVE = [{"p0":0.03,"meanMax":0.12741,"peakMult":4.2469,"doubleUp":0.457,"tripleUp":0.3067,"gammaDelta":0.13932},{"p0":0.05,"meanMax":0.18904,"peakMult":3.7808,"doubleUp":0.4623,"tripleUp":0.31,"gammaDelta":0.12184},{"p0":0.07,"meanMax":0.24208,"peakMult":3.4583,"doubleUp":0.4619,"tripleUp":0.3073,"gammaDelta":0.10932},{"p0":0.09,"meanMax":0.29314,"peakMult":3.2572,"doubleUp":0.4643,"tripleUp":0.3125,"gammaDelta":0.09932},{"p0":0.11,"meanMax":0.33827,"peakMult":3.0752,"doubleUp":0.4659,"tripleUp":0.3108,"gammaDelta":0.09085},{"p0":0.13,"meanMax":0.38065,"peakMult":2.9281,"doubleUp":0.4683,"tripleUp":0.3131,"gammaDelta":0.08344},{"p0":0.15,"meanMax":0.41844,"peakMult":2.7896,"doubleUp":0.4692,"tripleUp":0.3136,"gammaDelta":0.07677},{"p0":0.17,"meanMax":0.45584,"peakMult":2.6814,"doubleUp":0.4734,"tripleUp":0.3148,"gammaDelta":0.07068},{"p0":0.19,"meanMax":0.49071,"peakMult":2.5827,"doubleUp":0.4743,"tripleUp":0.3193,"gammaDelta":0.06503},{"p0":0.21,"meanMax":0.52191,"peakMult":2.4853,"doubleUp":0.473,"tripleUp":0.3154,"gammaDelta":0.05973},{"p0":0.23,"meanMax":0.54989,"peakMult":2.3908,"doubleUp":0.4714,"tripleUp":0.3136,"gammaDelta":0.05473},{"p0":0.25,"meanMax":0.58015,"peakMult":2.3206,"doubleUp":0.4731,"tripleUp":0.3196,"gammaDelta":0.04996},{"p0":0.27,"meanMax":0.60643,"peakMult":2.246,"doubleUp":0.4756,"tripleUp":0.3185,"gammaDelta":0.04539},{"p0":0.29,"meanMax":0.63555,"peakMult":2.1915,"doubleUp":0.4794,"tripleUp":0.3262,"gammaDelta":0.04099},{"p0":0.31,"meanMax":0.65832,"peakMult":2.1236,"doubleUp":0.4777,"tripleUp":0.3236,"gammaDelta":0.03673},{"p0":0.33,"meanMax":0.6814,"peakMult":2.0649,"doubleUp":0.4779,"tripleUp":0.3295,"gammaDelta":0.03259},{"p0":0.35,"meanMax":0.70536,"peakMult":2.0153,"doubleUp":0.4827,"tripleUp":0.0,"gammaDelta":0.02854},{"p0":0.37,"meanMax":0.72146,"peakMult":1.9499,"doubleUp":0.475,"tripleUp":0.0,"gammaDelta":0.02458},{"p0":0.39,"meanMax":0.74397,"peakMult":1.9076,"doubleUp":0.4832,"tripleUp":0.0,"gammaDelta":0.02069},{"p0":0.41,"meanMax":0.76218,"peakMult":1.859,"doubleUp":0.4829,"tripleUp":0.0,"gammaDelta":0.01686},{"p0":0.43,"meanMax":0.78203,"peakMult":1.8187,"doubleUp":0.4899,"tripleUp":0.0,"gammaDelta":0.01306},{"p0":0.45,"meanMax":0.79833,"peakMult":1.7741,"doubleUp":0.4893,"tripleUp":0.0,"gammaDelta":0.00931},{"p0":0.47,"meanMax":0.81579,"peakMult":1.7357,"doubleUp":0.4948,"tripleUp":0.0,"gammaDelta":0.00558},{"p0":0.49,"meanMax":0.8293,"peakMult":1.6924,"doubleUp":0.4958,"tripleUp":0.0,"gammaDelta":0.00186}];
+
+window.MODEL = {
+  SIGMA_NBA, Phi, PhiInv, phi,
+  americanToImplied, devig,
+  calibrate, zScore, wpFav, greeks,
+  runConvexityMC, simOnePath,
+  CONVEXITY_CURVE
+};
+</script>
+
+<!-- ===================================================================
+     APP — vanilla JS + Chart.js
+     =================================================================== -->
+<script>
+"use strict";
+
+(function() {
+  const M = window.MODEL;
+
+  // Guard: if Chart.js failed to load, show a banner but still render
+  // the static math sections (Greek tiles, position math).
+  if (typeof Chart === 'undefined') {
+    const eb = document.getElementById('boot-error');
+    eb.style.display = 'block';
+    eb.textContent = '⚠ Chart.js failed to load from both CDNs. Calculator still works; charts hidden.';
+    // Hide chart wrappers
+    document.querySelectorAll('.chart-wrap').forEach(el => el.style.display = 'none');
+  } else {
+    // Chart.js global defaults — match the editorial aesthetic
+    Chart.defaults.color = '#9a9a9a';
+    Chart.defaults.font.family = "'IBM Plex Mono', monospace";
+    Chart.defaults.font.size = 10;
+    Chart.defaults.borderColor = '#1f1f1f';
+    Chart.defaults.scale.grid.color = '#1a1a1a';
+    Chart.defaults.scale.ticks.color = '#9a9a9a';
+  }
+
+  // ===== State =====
+  const state = {
+    favOdds: -190,
+    dogOdds: 160,
+    stake: 100,
+    side: 'dog',          // 'fav' or 'dog'
+    tElapsed: 0,
+    D: 0,
+    sigma: M.SIGMA_NBA,
+  };
+
+  // ===== Formatters =====
+  const fmt = (x, d=3) => isFinite(x) ? x.toFixed(d) : '—';
+  const pct = (x, d=1) => isFinite(x) ? (100*x).toFixed(d) + '%' : '—';
+  const sgn = (x) => x > 0 ? '+' : '';
+
+  // ===== Chart instances =====
+  const charts = {};
+
+  // ===== Derive everything from state =====
+  function compute() {
+    const dv = M.devig(state.favOdds, state.dogOdds);
+    const params = M.calibrate(dv.fav, state.sigma);
+    const wpF = M.wpFav(state.D, state.tElapsed, params);
+    const wpD = 1 - wpF;
+    const myWP = state.side === 'fav' ? wpF : wpD;
+    const myEntry = state.side === 'fav' ? dv.fav : dv.dog;
+    const g = M.greeks(state.D, state.tElapsed, params);
+    const myG = state.side === 'fav' ? g : {
+      delta: -g.delta, gamma: -g.gamma, theta: -g.theta, vega: -g.vega
+    };
+    const myOdds = state.side === 'fav' ? state.favOdds : state.dogOdds;
+    const payoutOnWin = myOdds > 0
+      ? state.stake * (myOdds / 100)
+      : state.stake * (100 / Math.abs(myOdds));
+    const fairValue = myWP * (state.stake + payoutOnWin) - state.stake;
+    const entryEV = myEntry * (state.stake + payoutOnWin) - state.stake;
+    return { dv, params, wpF, wpD, myWP, myEntry, g, myG, myOdds, payoutOnWin, fairValue, entryEV };
+  }
+
+  // ===== Update DOM =====
+  function setText(id, val) { const el = document.getElementById(id); if (el) el.textContent = val; }
+  function setHTML(id, val) { const el = document.getElementById(id); if (el) el.innerHTML = val; }
+  function setClass(id, cls) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.className = el.className.replace(/\b(pos|neg|amber)\b/g, '').trim();
+    if (cls) el.classList.add(cls);
+  }
+
+  function renderModule1() {
+    const c = compute();
+
+    // Field readouts
+    setText('side-readout', state.side === 'fav' ? 'favorite' : 'underdog');
+    setText('fav-odds-readout', (state.favOdds > 0 ? '+' : '') + state.favOdds);
+    setText('dog-odds-readout', (state.dogOdds > 0 ? '+' : '') + state.dogOdds);
+    setText('stake-readout', '$' + state.stake);
+    const minPlayed = (state.tElapsed * 48).toFixed(1);
+    const quarter = state.tElapsed < 0.25 ? 'Q1'
+                  : state.tElapsed < 0.5  ? 'Q2'
+                  : state.tElapsed < 0.75 ? 'Q3'
+                  : state.tElapsed < 1.0  ? 'Q4' : 'END';
+    setText('time-readout', `${quarter} · ${minPlayed} / 48 min`);
+    setText('d-readout',
+      state.D > 0 ? 'fav +' + state.D
+      : state.D < 0 ? 'dog +' + Math.abs(state.D)
+      : 'tied');
+    setText('sigma-readout', state.sigma.toFixed(1));
+
+    // Devig block
+    setHTML('devig-body',
+      `fav fair: ${pct(c.dv.fav, 1)}<br/>` +
+      `dog fair: ${pct(c.dv.dog, 1)}<br/>` +
+      `vig: <span style="color:var(--ink-soft)">${pct(c.dv.vig, 2)}</span><br/>` +
+      `implied drift μ: ${fmt(c.params.mu, 2)} pts`
+    );
+
+    // Greek tiles
+    setText('readout-side', state.side === 'fav' ? 'favorite' : 'underdog');
+    setText('g-wp', pct(c.myWP, 1));
+    setText('g-wp-sub', 'entry: ' + pct(c.myEntry, 1));
+    setText('g-delta', sgn(c.myG.delta) + fmt(c.myG.delta, 4));
+    setText('g-gamma', sgn(c.myG.gamma) + fmt(c.myG.gamma, 5));
+    setText('g-theta', sgn(c.myG.theta) + fmt(c.myG.theta, 4));
+    setText('g-vega',  sgn(c.myG.vega)  + fmt(c.myG.vega, 4));
+    setClass('g-delta', c.myG.delta > 0 ? 'pos' : 'neg');
+    setClass('g-gamma', c.myG.gamma > 0 ? 'pos' : 'neg');
+    setClass('g-theta', c.myG.theta > 0 ? 'pos' : 'neg');
+    setClass('g-vega',  c.myG.vega  > 0 ? 'pos' : 'neg');
+
+    // Bet value tiles
+    setText('bv-fair', '$' + fmt(c.fairValue, 2));
+    setText('bv-payout', '$' + fmt(c.payoutOnWin, 2));
+    setText('bv-entry', '$' + fmt(c.entryEV, 2));
+    setText('bv-stake-disp', state.stake);
+    setClass('bv-fair',  c.fairValue >= 0 ? 'pos' : 'neg');
+    setClass('bv-entry', c.entryEV   >= 0 ? 'pos' : 'neg');
+
+    // Reading the Greeks
+    setText('r-delta', fmt(c.myG.delta, 4));
+    setHTML('r-delta-text',
+      `A 1-point swing in score differential moves ${state.side} WP by ` +
+      `<span style="color:var(--ink); font-family:var(--mono);">${(c.myG.delta*100).toFixed(2)} pp</span>. ` +
+      `Largest near tied; collapses in blowouts.`);
+    setText('r-gamma', fmt(c.myG.gamma, 5));
+    setClass('r-gamma', c.myG.gamma >= 0 ? 'pos' : 'neg');
+    setHTML('r-gamma-text',
+      c.myG.gamma > 0
+        ? 'Convexity is in your favor — next score moves help you more than they hurt.'
+        : c.myG.gamma < 0
+        ? 'Convexity is against you — you\'re short gamma. Big swings cost more than small ones help.'
+        : 'Near zero gamma at this state.');
+    setText('r-theta', fmt(c.myG.theta, 4));
+    setClass('r-theta', c.myG.theta >= 0 ? 'pos' : 'neg');
+    setHTML('r-theta-text',
+      `Clock decay: time passing without a score change moves WP by ` +
+      `<span style="color:var(--ink); font-family:var(--mono);">${c.myG.theta.toFixed(3)}</span> ` +
+      `per unit of normalized game time.`);
+    setText('r-vega', fmt(c.myG.vega, 4));
+    setClass('r-vega', c.myG.vega >= 0 ? 'pos' : 'neg');
+    setHTML('r-vega-text',
+      c.myG.vega > 0
+        ? 'You want volatility — high-pace, high-variance games help. Foul-fest endings, three-bombing offenses, etc.'
+        : 'You want a low-variance game — slow, controlled pace, no garbage-time chaos.');
+
+    // Position math
+    setText('m-side', state.side === 'fav' ? 'FAVORITE' : 'UNDERDOG');
+    setText('m-odds', (c.myOdds > 0 ? '+' : '') + c.myOdds);
+    setText('m-stake', '$' + state.stake.toFixed(2));
+    setText('m-payout', '$' + c.payoutOnWin.toFixed(2));
+    setText('m-rawp', pct(M.americanToImplied(c.myOdds), 2));
+    setText('m-devigp', pct(c.myEntry, 2));
+    setText('m-wp', pct(c.myWP, 2));
+    const wpDelta = c.myWP - c.myEntry;
+    setText('m-wpdelta', sgn(wpDelta*100) + (wpDelta*100).toFixed(2) + ' pp');
+    setClass('m-wpdelta', wpDelta >= 0 ? 'pos' : 'neg');
+    setText('m-fair', '$' + c.fairValue.toFixed(2));
+    setClass('m-fair', c.fairValue >= 0 ? 'pos' : 'neg');
+    setText('m-preev', '$' + c.entryEV.toFixed(2));
+    setClass('m-preev', c.entryEV >= 0 ? 'pos' : 'neg');
+    setText('m-mu', fmt(c.params.mu, 3) + ' pts');
+    setText('m-sigma', c.params.sigma.toFixed(1) + ' pts');
+
+    // Charts
+    updatePayoffChart(c);
+    updateThetaChart(c);
+    renderModule2(c);
+  }
+
+  function updatePayoffChart(c) {
+    if (typeof Chart === 'undefined') return;
+    const points = [];
+    for (let dd = -35; dd <= 35; dd += 1) points.push(dd);
+    function valAt(dd, t) {
+      const wpf = M.wpFav(dd, t, c.params);
+      const wp = state.side === 'fav' ? wpf : 1 - wpf;
+      return wp * (state.stake + c.payoutOnWin) - state.stake;
+    }
+    const datasets = [
+      { label: 'pregame',  data: points.map(d => valAt(d, 0)),       borderColor: '#3a3a3a', borderWidth: 1,   pointRadius: 0, tension: 0.2 },
+      { label: 'halftime', data: points.map(d => valAt(d, 0.5)),     borderColor: '#60a5fa', borderWidth: 1,   pointRadius: 0, tension: 0.2, borderDash: [] },
+      { label: '4Q early', data: points.map(d => valAt(d, 0.85)),    borderColor: '#a78bfa', borderWidth: 1,   pointRadius: 0, tension: 0.2 },
+      { label: 'final min',data: points.map(d => valAt(d, 0.99)),    borderColor: '#f87171', borderWidth: 1,   pointRadius: 0, tension: 0.1 },
+      { label: 'now',      data: points.map(d => valAt(d, state.tElapsed)), borderColor: '#ffb547', borderWidth: 2.5, pointRadius: 0, tension: 0.2 },
+    ];
+
+    const data = { labels: points, datasets };
+    const opts = {
+      responsive: true, maintainAspectRatio: false, animation: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#0a0a0a',
+          borderColor: '#ffb547', borderWidth: 1,
+          titleColor: '#ffb547', titleFont: { family: "'IBM Plex Mono'" },
+          bodyColor: '#ededed',  bodyFont:  { family: "'IBM Plex Mono'" },
+          callbacks: {
+            title: (items) => 'D = ' + items[0].label,
+            label: (item) => item.dataset.label + ': $' + item.parsed.y.toFixed(2),
+          }
+        },
+        annotation: {} // (we don't have the plugin; skip)
+      },
+      scales: {
+        x: {
+          title: { display: true, text: 'score differential D (fav − dog)', color: '#5e5e5e' },
+          grid: { color: '#1a1a1a' },
+          ticks: { stepSize: 10 }
+        },
+        y: {
+          title: { display: true, text: 'bet value', color: '#5e5e5e' },
+          grid: { color: '#1a1a1a' },
+          ticks: { callback: v => '$' + v.toFixed(0) }
+        }
+      }
+    };
+
+    if (charts.payoff) {
+      charts.payoff.data = data;
+      charts.payoff.update('none');
+    } else {
+      const ctx = document.getElementById('chart-payoff');
+      if (ctx) charts.payoff = new Chart(ctx, { type: 'line', data, options: opts });
+    }
+  }
+
+  function updateThetaChart(c) {
+    if (typeof Chart === 'undefined') return;
+    const tPoints = [];
+    for (let i = 0; i <= 60; i++) tPoints.push((i / 60) * 0.99);
+    function wpAt(dd, t) {
+      const wpf = M.wpFav(dd, t, c.params);
+      return state.side === 'fav' ? wpf : 1 - wpf;
+    }
+    const colors = { '-8':'#f87171', '-3':'#fb923c', '0':'#ffb547', '3':'#a3e635', '8':'#4ade80' };
+    const datasets = ['-8','-3','0','3','8'].map(d => ({
+      label: 'D=' + d,
+      data: tPoints.map(t => wpAt(parseInt(d), t)),
+      borderColor: colors[d],
+      borderWidth: d === '0' ? 1.6 : 1.2,
+      pointRadius: 0,
+      tension: 0.2,
+    }));
+
+    const data = { labels: tPoints.map(t => (t*48).toFixed(0)), datasets };
+    const opts = {
+      responsive: true, maintainAspectRatio: false, animation: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#0a0a0a',
+          borderColor: '#ffb547', borderWidth: 1,
+          titleColor: '#ffb547', titleFont: { family: "'IBM Plex Mono'" },
+          bodyColor: '#ededed',  bodyFont:  { family: "'IBM Plex Mono'" },
+          callbacks: {
+            title: (items) => 't ≈ ' + items[0].label + "'",
+            label: (item) => item.dataset.label + ': ' + (item.parsed.y*100).toFixed(1) + '%',
+          }
+        }
+      },
+      scales: {
+        x: {
+          title: { display: true, text: 'game minute', color: '#5e5e5e' },
+          grid: { color: '#1a1a1a' },
+          ticks: { maxTicksLimit: 7, callback: function(v, i) { return (i % 10 === 0) ? this.getLabelForValue(v) + "'" : ''; } }
+        },
+        y: {
+          title: { display: false },
+          grid: { color: '#1a1a1a' },
+          min: 0, max: 1,
+          ticks: { callback: v => (v*100).toFixed(0) + '%' }
+        }
+      }
+    };
+
+    if (charts.theta) {
+      charts.theta.data = data;
+      charts.theta.update('none');
+    } else {
+      const ctx = document.getElementById('chart-theta');
+      if (ctx) charts.theta = new Chart(ctx, { type: 'line', data, options: opts });
+    }
+  }
+
+  // ===== Module 2 rendering =====
+  function renderModule2(c) {
+    // The user's effective p0 — Module 2 frames from the dog's perspective always
+    const p0 = state.side === 'fav' ? c.dv.fav : c.dv.dog;
+
+    // Interpolate against baked curve
+    const curve = M.CONVEXITY_CURVE;
+    let interp;
+    if (p0 <= curve[0].p0) interp = curve[0];
+    else if (p0 >= curve[curve.length-1].p0) interp = curve[curve.length-1];
+    else {
+      for (let i = 0; i < curve.length - 1; i++) {
+        if (p0 >= curve[i].p0 && p0 <= curve[i+1].p0) {
+          const a = curve[i], b = curve[i+1];
+          const t = (p0 - a.p0) / (b.p0 - a.p0);
+          const L = (k) => a[k] + t * (b[k] - a[k]);
+          interp = {
+            p0,
+            peakMult: L('peakMult'),
+            doubleUp: L('doubleUp'),
+            tripleUp: L('tripleUp'),
+            gammaDelta: L('gammaDelta'),
+            meanMax: L('meanMax'),
+          };
+          break;
+        }
+      }
+    }
+
+    // Zone classification
+    let zone, zoneColor;
+    if (p0 < 0.10)       { zone = 'DEEP CONVEXITY'; zoneColor = 'var(--pos)'; }
+    else if (p0 < 0.20)  { zone = 'CONVEX';         zoneColor = 'var(--info)'; }
+    else if (p0 < 0.33)  { zone = 'MIXED';          zoneColor = 'var(--amber)'; }
+    else                 { zone = 'DIRECTIONAL';    zoneColor = 'var(--neg)'; }
+
+    setText('m2-position', (state.side === 'fav' ? 'favorite' : 'underdog') + ' at p₀ = ' + pct(p0, 1));
+    setText('m2-peak', pct(interp.meanMax, 1));
+    setText('m2-mult', interp.peakMult.toFixed(2) + '×');
+    setText('m2-2x', (interp.doubleUp*100).toFixed(0) + '%');
+    setText('m2-gd', interp.gammaDelta.toFixed(4));
+    setText('m2-zone', zone);
+    const zw = document.getElementById('m2-zone-wrap');
+    if (zw) zw.style.borderColor = zoneColor;
+    const ze = document.getElementById('m2-zone');
+    if (ze) ze.style.color = zoneColor;
+
+    setText('mc-p0', pct(p0, 1));
+
+    updatePeakChart(p0);
+    updateRateCharts(p0);
+  }
+
+  function updatePeakChart(p0) {
+    if (typeof Chart === 'undefined') return;
+    const curve = M.CONVEXITY_CURVE;
+
+    const data = {
+      labels: curve.map(r => (r.p0*100).toFixed(0) + '%'),
+      datasets: [
+        {
+          label: 'peak multiple',
+          data: curve.map(r => r.peakMult),
+          borderColor: '#ffb547',
+          backgroundColor: '#ffb547',
+          borderWidth: 2,
+          pointRadius: curve.map(r => Math.abs(r.p0 - p0) < 0.015 ? 6 : 2.5),
+          pointBackgroundColor: curve.map(r => Math.abs(r.p0 - p0) < 0.015 ? '#fff' : '#ffb547'),
+          tension: 0.15,
+        }
+      ]
+    };
+    const opts = {
+      responsive: true, maintainAspectRatio: false, animation: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#0a0a0a', borderColor: '#ffb547', borderWidth: 1,
+          titleColor: '#ffb547',
+          callbacks: {
+            title: items => 'p₀ = ' + items[0].label,
+            label: item => item.parsed.y.toFixed(2) + '×',
+          }
+        }
+      },
+      scales: {
+        x: {
+          title: { display: true, text: 'pregame underdog probability p₀', color: '#5e5e5e' },
+          grid: { color: '#1a1a1a' },
+        },
+        y: {
+          title: { display: true, text: 'E[max p_dog] / p₀', color: '#5e5e5e' },
+          grid: { color: '#1a1a1a' },
+          ticks: { callback: v => v.toFixed(1) + '×' },
+          suggestedMin: 1, suggestedMax: 4.5,
+        }
+      }
+    };
+    if (charts.peak) { charts.peak.data = data; charts.peak.update('none'); }
+    else {
+      const ctx = document.getElementById('chart-peak');
+      if (ctx) charts.peak = new Chart(ctx, { type: 'line', data, options: opts });
+    }
+  }
+
+  function updateRateCharts(p0) {
+    if (typeof Chart === 'undefined') return;
+    const curve = M.CONVEXITY_CURVE;
+    const labels = curve.map(r => (r.p0*100).toFixed(0) + '%');
+
+    // 2x hit rate
+    const data2 = {
+      labels,
+      datasets: [{
+        label: 'P(2×)',
+        data: curve.map(r => r.doubleUp),
+        borderColor: '#4ade80',
+        borderWidth: 2,
+        pointRadius: curve.map(r => Math.abs(r.p0 - p0) < 0.015 ? 5 : 2),
+        pointBackgroundColor: '#4ade80',
+        tension: 0.15,
+      }]
+    };
+    const opts2 = {
+      responsive: true, maintainAspectRatio: false, animation: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#0a0a0a', borderColor: '#ffb547', borderWidth: 1,
+          titleColor: '#ffb547',
+          callbacks: {
+            title: items => 'p₀ = ' + items[0].label,
+            label: item => 'P(2×) = ' + (item.parsed.y*100).toFixed(1) + '%',
+          }
+        }
+      },
+      scales: {
+        x: { grid: { color: '#1a1a1a' } },
+        y: {
+          grid: { color: '#1a1a1a' },
+          min: 0, max: 1,
+          ticks: { callback: v => (v*100).toFixed(0) + '%' }
+        }
+      }
+    };
+    if (charts.rate2x) { charts.rate2x.data = data2; charts.rate2x.update('none'); }
+    else {
+      const ctx = document.getElementById('chart-2x');
+      if (ctx) charts.rate2x = new Chart(ctx, { type: 'line', data: data2, options: opts2 });
+    }
+
+    // gamma/delta ratio (log scale)
+    const dataGd = {
+      labels,
+      datasets: [{
+        label: '|γ|/δ',
+        data: curve.map(r => r.gammaDelta),
+        borderColor: '#fb923c',
+        borderWidth: 2,
+        pointRadius: curve.map(r => Math.abs(r.p0 - p0) < 0.015 ? 5 : 2),
+        pointBackgroundColor: '#fb923c',
+        tension: 0.15,
+      }]
+    };
+    const optsGd = {
+      responsive: true, maintainAspectRatio: false, animation: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#0a0a0a', borderColor: '#ffb547', borderWidth: 1,
+          titleColor: '#ffb547',
+          callbacks: {
+            title: items => 'p₀ = ' + items[0].label,
+            label: item => '|γ|/δ = ' + item.parsed.y.toFixed(4),
+          }
+        }
+      },
+      scales: {
+        x: { grid: { color: '#1a1a1a' } },
+        y: {
+          type: 'logarithmic',
+          grid: { color: '#1a1a1a' },
+          min: 0.001, max: 0.2,
+          ticks: { callback: v => v.toFixed(3) }
+        }
+      }
+    };
+    if (charts.gd) { charts.gd.data = dataGd; charts.gd.update('none'); }
+    else {
+      const ctx = document.getElementById('chart-gd');
+      if (ctx) charts.gd = new Chart(ctx, { type: 'line', data: dataGd, options: optsGd });
+    }
+  }
+
+  // ===== Monte Carlo button =====
+  function runMonteCarlo() {
+    const c = compute();
+    const p0 = state.side === 'fav' ? c.dv.fav : c.dv.dog;
+    const btn = document.getElementById('mc-run');
+    btn.disabled = true;
+    btn.textContent = 'running…';
+    setTimeout(() => {
+      const result = M.runConvexityMC(p0, 5000, 150, state.sigma);
+      renderMCResult(result, p0);
+      btn.disabled = false;
+      btn.textContent = 'Run simulation';
+    }, 50);
+  }
+
+  function renderMCResult(result, p0) {
+    const out = document.getElementById('mc-output');
+    out.innerHTML = `
+      <div class="tiles-5">
+        <div class="tile">
+          <div class="tile-name">MEAN PEAK</div>
+          <div class="tile-value">${pct(result.meanMax, 1)}</div>
+          <div class="tile-sub">${result.peakMult.toFixed(2)}× entry</div>
+        </div>
+        <div class="tile">
+          <div class="tile-name">MEDIAN PEAK</div>
+          <div class="tile-value">${pct(result.p50, 1)}</div>
+          <div class="tile-sub">50th pct</div>
+        </div>
+        <div class="tile">
+          <div class="tile-name">90TH PCT PEAK</div>
+          <div class="tile-value">${pct(result.p90, 1)}</div>
+          <div class="tile-sub">tail scenarios</div>
+        </div>
+        <div class="tile">
+          <div class="tile-name">P(REACH 2×)</div>
+          <div class="tile-value pos">${pct(result.doubleUp, 1)}</div>
+          <div class="tile-sub">of paths</div>
+        </div>
+        <div class="tile">
+          <div class="tile-name">DOG WIN RATE</div>
+          <div class="tile-value">${pct(result.dogWinRate, 1)}</div>
+          <div class="tile-sub">vs. p₀ = ${pct(p0, 1)}</div>
+        </div>
+      </div>
+      <div class="chart-wrap" style="margin-top:0;">
+        <div class="chart-head">
+          <span class="chart-title"><em>Distribution</em> · max p<sub>dog</sub> achieved per path</span>
+          <span class="chart-meta">${result.nPaths.toLocaleString()} paths</span>
+        </div>
+        <div class="chart-container small"><canvas id="chart-mc"></canvas></div>
+      </div>
+    `;
+
+    // Build histogram
+    if (typeof Chart === 'undefined') return;
+    const bins = 30;
+    const hist = new Array(bins).fill(0);
+    for (const m of result.maxes) {
+      const idx = Math.min(bins - 1, Math.floor(m * bins));
+      hist[idx]++;
+    }
+    const labels = hist.map((_, i) => ((i + 0.5) / bins * 100).toFixed(0) + '%');
+    const data = {
+      labels,
+      datasets: [{
+        label: 'pct of paths',
+        data: hist.map(c => c / result.nPaths),
+        backgroundColor: '#ffb547',
+        borderColor: '#ffb547',
+        borderWidth: 1,
+      }]
+    };
+    const opts = {
+      responsive: true, maintainAspectRatio: false, animation: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#0a0a0a', borderColor: '#ffb547', borderWidth: 1,
+          titleColor: '#ffb547',
+          callbacks: {
+            title: items => 'max p_dog ≈ ' + items[0].label,
+            label: item => (item.parsed.y*100).toFixed(2) + '% of paths',
+          }
+        }
+      },
+      scales: {
+        x: {
+          title: { display: true, text: 'max underdog WP achieved', color: '#5e5e5e' },
+          grid: { color: '#1a1a1a' }
+        },
+        y: {
+          grid: { color: '#1a1a1a' },
+          ticks: { callback: v => (v*100).toFixed(1) + '%' }
+        }
+      }
+    };
+    setTimeout(() => {
+      const ctx = document.getElementById('chart-mc');
+      if (ctx) new Chart(ctx, { type: 'bar', data, options: opts });
+    }, 10);
+  }
+
+  // ===== Wire up inputs =====
+  function bindInputs() {
+    document.querySelectorAll('#side-toggle button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        state.side = btn.dataset.side;
+        document.querySelectorAll('#side-toggle button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        renderModule1();
+      });
+    });
+    document.getElementById('fav-odds').addEventListener('input', e => {
+      const v = parseInt(e.target.value, 10);
+      if (isFinite(v) && v !== 0) { state.favOdds = v; renderModule1(); }
+    });
+    document.getElementById('dog-odds').addEventListener('input', e => {
+      const v = parseInt(e.target.value, 10);
+      if (isFinite(v) && v !== 0) { state.dogOdds = v; renderModule1(); }
+    });
+    document.getElementById('stake').addEventListener('input', e => {
+      const v = parseFloat(e.target.value);
+      if (isFinite(v) && v > 0) { state.stake = v; renderModule1(); }
+    });
+    document.getElementById('t-elapsed').addEventListener('input', e => {
+      state.tElapsed = parseFloat(e.target.value);
+      renderModule1();
+    });
+    document.getElementById('d-input').addEventListener('input', e => {
+      state.D = parseInt(e.target.value, 10);
+      renderModule1();
+    });
+    document.getElementById('sigma-input').addEventListener('input', e => {
+      state.sigma = parseFloat(e.target.value);
+      renderModule1();
+    });
+    document.getElementById('mc-run').addEventListener('click', runMonteCarlo);
+  }
+
+  // Boot
+  bindInputs();
+  renderModule1();
+})();
+</script>
+
+</body>
+</html>
